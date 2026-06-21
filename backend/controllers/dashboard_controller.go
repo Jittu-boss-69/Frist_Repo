@@ -92,6 +92,10 @@ func (ctrl *DashboardController) GetMetrics(c *gin.Context) {
 
 	// 5. Host Local Network IP
 	localIP := utils.GetLocalIP()
+	// If a PUBLIC_HOST is provided via environment (e.g., set in compose), prefer it
+	if config.AppConfig.PublicHost != "" {
+		localIP = config.AppConfig.PublicHost
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"total_files":          totalFiles,

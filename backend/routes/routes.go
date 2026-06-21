@@ -79,5 +79,10 @@ func SetupRouter(
 		}
 	}
 
+	// For client-side routed SPA paths, serve the index.html so the frontend router can handle paths like /login
+	r.NoRoute(func(c *gin.Context) {
+		c.File("./frontend/index.html")
+	})
+
 	return r
 }

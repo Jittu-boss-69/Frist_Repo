@@ -662,8 +662,17 @@ async function deleteFile(id) {
 // CLI & QR CONNECTIONS
 // ==========================================
 function updateCLIConnection() {
-  const hostURL = `http://${STATE.localIP}:${STATE.port}`;
-  
+  // Prefer the browser's current host (useful when user accessed via LAN IP).
+  // Fall back to server-reported local IP when hostname is localhost/127.0.0.1.
+  const loc = window.location;
+  let host = loc.hostname;
+  if (!host || host === 'localhost' || host === '127.0.0.1') {
+    if (STATE.localIP && STATE.localIP !== '127.0.0.1') {
+      host = STATE.localIP;
+    }
+  }
+  const hostURL = `${loc.protocol}//${host}${loc.port ? ':' + loc.port : ''}`;
+
   // Set link and QR string
   const urlLink = document.getElementById('cli-connection-url');
   urlLink.innerText = hostURL;
@@ -697,7 +706,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
   });
 });
 
-function switchTab(tabName) {
+function switchTab(tabName, opts = { push: true }) {
   STATE.activeTab = tabName;
 
   // Active styles in Sidebar
@@ -715,16 +724,19 @@ function switchTab(tabName) {
   });
   
   const activeSec = document.getElementById(`tab-${tabName}`);
-  activeSec.classList.remove('hidden');
+  if (activeSec) activeSec.classList.remove('hidden');
 
   // Set header title
   const titles = {
     dashboard: 'Dashboard Monitoring',
     snippets: 'Developer Code Vault',
     files: 'File Sharing Vault',
-    cli: 'CLI & Connection Portal'
+    cli: 'CLI & Connection Portal',
+    login: 'Sign In',
+    register: 'Create Account'
   };
-  document.getElementById('current-section-title').innerText = titles[tabName];
+  const titleEl = document.getElementById('current-section-title');
+  if (titleEl) titleEl.innerText = titles[tabName] || '';
 
   // Refresh tab data
   if (tabName === 'dashboard') {
@@ -737,7 +749,57 @@ function switchTab(tabName) {
   } else if (tabName === 'cli') {
     updateCLIConnection();
   }
+
+  // Update browser URL using history API so routes are shareable/bookmarkable
+  if (opts.push) {
+    const pathMap = {
+      'dashboard': '/dashboard',
+      'snippets': '/snippets',
+      'files': '/files',
+      'cli': '/cli',
+      'login': '/login',
+      'register': '/register'
+    };
+    const newPath = pathMap[tabName] || '/';
+    try { history.pushState({ tab: tabName }, '', newPath); } catch (e) { /* ignore */ }
+  }
 }
+
+// Map pathname -> tab name
+function pathToTab(pathname) {
+  if (!pathname) return 'dashboard';
+  const p = pathname.replace(/\/$/, '');
+  switch (p) {
+    case '':
+    case '/':
+    case '/dashboard':
+      return 'dashboard';
+    case '/snippets':
+      return 'snippets';
+    case '/files':
+      return 'files';
+    case '/cli':
+      return 'cli';
+    case '/login':
+      return 'login';
+    case '/register':
+      return 'register';
+    default:
+      return 'dashboard';
+  }
+}
+
+// Handle back/forward navigation
+window.addEventListener('popstate', () => {
+  const tab = pathToTab(window.location.pathname);
+  switchTab(tab, { push: false });
+});
+
+// On initial load, pick tab from URL
+document.addEventListener('DOMContentLoaded', () => {
+  const initial = pathToTab(window.location.pathname);
+  switchTab(initial, { push: false });
+});
 
 // ==========================================
 // EVENT LISTENERS & INITIAL BOOT

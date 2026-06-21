@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"log"
@@ -11,7 +11,7 @@ import (
 	"devsync/backend/worker"
 )
 
-func main() {
+func Server() {
 	// 1. Load Configurations
 	config.LoadConfig()
 

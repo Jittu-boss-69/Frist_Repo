@@ -12,6 +12,7 @@ type Config struct {
 	DBConnStr   string
 	JWTSecret   string
 	UploadDir   string
+	PublicHost  string
 }
 
 var AppConfig Config
@@ -79,5 +80,6 @@ func LoadConfig() {
 		DBConnStr:   connStr,
 		JWTSecret:   jwtSecret,
 		UploadDir:   uploadDir,
+		PublicHost:  os.Getenv("PUBLIC_HOST"),
 	}
 }
