@@ -181,16 +181,16 @@ func (r *SharedFileRepository) Create(f *models.SharedFile) error {
 	}
 	f.UploadedAt = time.Now()
 
-	query := `INSERT INTO shared_files (id, file_name, file_path, file_size, file_type, sender_device, download_count, uploaded_at) 
-			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-	_, err := config.DB.Exec(query, f.ID, f.FileName, f.FilePath, f.FileSize, f.FileType, f.SenderDevice, f.DownloadCount, f.UploadedAt)
+	query := `INSERT INTO shared_files (id, file_name, file_path, file_size, file_type, sender_device, download_count, relative_path, uploaded_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	_, err := config.DB.Exec(query, f.ID, f.FileName, f.FilePath, f.FileSize, f.FileType, f.SenderDevice, f.DownloadCount, f.RelativePath, f.UploadedAt)
 	return err
 }
 
 func (r *SharedFileRepository) GetByID(id uuid.UUID) (*models.SharedFile, error) {
 	f := &models.SharedFile{}
-	query := `SELECT id, file_name, file_path, file_size, file_type, sender_device, download_count, uploaded_at FROM shared_files WHERE id = $1`
-	err := config.DB.QueryRow(query, id).Scan(&f.ID, &f.FileName, &f.FilePath, &f.FileSize, &f.FileType, &f.SenderDevice, &f.DownloadCount, &f.UploadedAt)
+	query := `SELECT id, file_name, file_path, file_size, file_type, sender_device, download_count, relative_path, uploaded_at FROM shared_files WHERE id = $1`
+	err := config.DB.QueryRow(query, id).Scan(&f.ID, &f.FileName, &f.FilePath, &f.FileSize, &f.FileType, &f.SenderDevice, &f.DownloadCount, &f.RelativePath, &f.UploadedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -202,7 +202,7 @@ func (r *SharedFileRepository) GetByID(id uuid.UUID) (*models.SharedFile, error)
 
 func (r *SharedFileRepository) GetAll(searchQuery string, fileType string) ([]models.SharedFile, error) {
 	var list []models.SharedFile
-	query := `SELECT id, file_name, file_path, file_size, file_type, sender_device, download_count, uploaded_at 
+	query := `SELECT id, file_name, file_path, file_size, file_type, sender_device, download_count, relative_path, uploaded_at 
 			  FROM shared_files 
 			  WHERE (file_name ILIKE $1) `
 	args := []interface{}{"%" + searchQuery + "%"}
@@ -221,7 +221,7 @@ func (r *SharedFileRepository) GetAll(searchQuery string, fileType string) ([]mo
 
 	for rows.Next() {
 		f := models.SharedFile{}
-		err := rows.Scan(&f.ID, &f.FileName, &f.FilePath, &f.FileSize, &f.FileType, &f.SenderDevice, &f.DownloadCount, &f.UploadedAt)
+		err := rows.Scan(&f.ID, &f.FileName, &f.FilePath, &f.FileSize, &f.FileType, &f.SenderDevice, &f.DownloadCount, &f.RelativePath, &f.UploadedAt)
 		if err != nil {
 			return nil, err
 		}

@@ -33,6 +33,7 @@ type SharedFile struct {
 	FileType      string    `json:"file_type"`
 	SenderDevice  string    `json:"sender_device"`
 	DownloadCount int       `json:"download_count"`
+	RelativePath  string    `json:"relative_path"`
 	UploadedAt    time.Time `json:"uploaded_at"`
 }
 

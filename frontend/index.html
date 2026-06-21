@@ -313,6 +313,9 @@
                     <button id="btn-editor-fav" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-amber-400 text-slate-500" title="Favorite">
                       <i class="fa-solid fa-star"></i>
                     </button>
+                    <button id="btn-editor-preview" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-emerald-400 text-slate-400 flex items-center gap-1.5 text-xs" title="Toggle Live Preview">
+                      <i class="fa-solid fa-book-open"></i> Preview
+                    </button>
                     <button id="btn-editor-copy" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-blue-400 text-slate-400 flex items-center gap-2 text-xs" title="Copy Code">
                       <i class="fa-solid fa-copy"></i> Copy
                     </button>
@@ -328,8 +331,11 @@
                   </div>
                 </div>
 
-                <!-- Monaco Instance Container -->
-                <div class="flex-1" id="monaco-editor-container"></div>
+                <!-- Monaco & Markdown split panel -->
+                <div class="flex-1 flex gap-4 overflow-hidden relative">
+                  <div class="flex-1 h-full" id="monaco-editor-container"></div>
+                  <div class="flex-1 h-full hidden overflow-y-auto p-5 rounded-lg border border-slate-800/80 bg-[#0b0f19]/80 text-slate-300 prose prose-invert max-w-none text-sm font-sans" id="markdown-preview-container"></div>
+                </div>
               </div>
 
               <!-- Editor Placeholder -->
@@ -351,13 +357,22 @@
             <!-- Left: Drop & Tree View (4 cols) -->
             <div class="xl:col-span-4 space-y-6">
               <!-- Upload Drag Drop Box -->
-              <div id="drop-zone" class="glass-panel p-8 rounded-2xl border-2 border-dashed border-slate-800 hover:border-blue-500/50 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 h-[220px]">
-                <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 mb-4 glow-blue">
-                  <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+              <div id="drop-zone" class="glass-panel p-6 rounded-2xl border-2 border-dashed border-slate-800 hover:border-blue-500/50 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 h-[220px]">
+                <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 mb-3 glow-blue">
+                  <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
                 </div>
-                <h4 class="font-bold text-slate-200">Drag & Drop Files Here</h4>
-                <p class="text-xs text-slate-500 mt-1">Supports chunk upload for large files</p>
+                <h4 class="font-bold text-slate-200 text-sm">Drag & Drop Files or Folders Here</h4>
+                <p class="text-[10px] text-slate-500 mt-1 mb-3">Supports chunk upload for large files</p>
+                <div class="flex gap-2">
+                  <button type="button" onclick="event.stopPropagation(); document.getElementById('file-input').click();" class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-slate-800 transition-colors">
+                    <i class="fa-solid fa-file"></i> Files
+                  </button>
+                  <button type="button" onclick="event.stopPropagation(); document.getElementById('folder-input').click();" class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 hover:bg-slate-800 transition-colors">
+                    <i class="fa-solid fa-folder"></i> Folder
+                  </button>
+                </div>
                 <input type="file" id="file-input" class="hidden" multiple>
+                <input type="file" id="folder-input" class="hidden" webkitdirectory directory multiple>
               </div>
 
               <!-- Uploading progress panel (dynamic) -->
@@ -378,6 +393,17 @@
               <!-- Folder tree explorer -->
               <div class="glass-panel p-6 rounded-2xl flex flex-col h-[400px]">
                 <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
+                  <i class="fa-solid fa-folder-tree text-purple-400"></i>
+                  Folder Tree Explorer
+                </h3>
+                <div id="folder-tree-container" class="flex-1 overflow-y-auto space-y-1 text-xs text-slate-400 pr-2">
+                  <p class="text-slate-500 text-center py-12">No folders uploaded yet.</p>
+                </div>
+              </div>
+
+              <!-- File type filter -->
+              <div class="glass-panel p-6 rounded-2xl flex flex-col h-[320px]">
+                <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
                   <i class="fa-solid fa-network-wired text-purple-400"></i>
                   File Type Filter
                 </h3>
@@ -394,11 +420,11 @@
                     <span>Documents (.pdf, .txt)</span>
                     <i class="fa-solid fa-file-lines text-slate-500"></i>
                   </button>
-                  <button data-type=".png,.jpg,.svg" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                  <button data-type=".png,.jpg,.svg,.jpeg,.gif" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
                     <span>Images (.png, .jpg)</span>
                     <i class="fa-solid fa-file-image text-slate-500"></i>
                   </button>
-                  <button data-type=".mp4,.mkv,.avi" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                  <button data-type=".mp4,.mkv,.avi,.mov" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
                     <span>Videos (.mp4, .mkv)</span>
                     <i class="fa-solid fa-file-video text-slate-500"></i>
                   </button>
@@ -537,9 +563,42 @@
   <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
   <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
 
+  <!-- ================= FILE PREVIEW MODAL ================= -->
+  <div id="preview-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md hidden">
+    <div class="glass-panel w-full max-w-4xl p-6 rounded-2xl border border-slate-800/80 shadow-2xl relative flex flex-col h-[80vh]">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-800/60 pb-3">
+        <h3 class="text-base font-bold text-slate-200 flex items-center gap-2 truncate">
+          <i class="fa-solid fa-eye text-blue-400"></i>
+          <span id="preview-filename">File Preview</span>
+        </h3>
+        <div class="flex items-center gap-3">
+          <span id="preview-filesize" class="text-xs text-slate-500 font-mono">0 B</span>
+          <button id="close-preview-btn" class="p-2 text-slate-500 hover:text-white rounded-lg hover:bg-slate-900 transition-colors">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+      </div>
+      <!-- Content Viewer Container -->
+      <div id="preview-content-container" class="flex-1 overflow-auto rounded-xl border border-slate-900 bg-black/40 p-4 flex items-center justify-center min-h-[350px]">
+        <!-- Render content dynamically -->
+      </div>
+      <!-- Footer actions -->
+      <div class="flex justify-between items-center mt-4 border-t border-slate-800/60 pt-3">
+        <div class="flex flex-col">
+          <span id="preview-meta" class="text-[10px] text-slate-500">Uploaded by: --</span>
+          <span id="preview-time" class="text-[10px] text-slate-500">Time: --</span>
+        </div>
+        <a id="preview-download-btn" href="#" target="_blank" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i> Download File
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- CDN scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <!-- Main app script -->
   <script src="/assets/js/app.js"></script>
