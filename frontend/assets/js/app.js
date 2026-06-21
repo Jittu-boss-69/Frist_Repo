@@ -419,6 +419,19 @@ function selectSnippet(id) {
     favBtn.className = 'p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 hover:text-amber-400';
   }
 
+  // Toggle markdown preview button
+  const previewBtn = document.getElementById('btn-editor-preview');
+  if (snippet.language.toLowerCase() === 'markdown') {
+    previewBtn.classList.remove('hidden');
+  } else {
+    previewBtn.classList.add('hidden');
+  }
+
+  // Reset editor view (default to Monaco code editor)
+  document.getElementById('markdown-preview-container').classList.add('hidden');
+  document.getElementById('monaco-editor-container').classList.remove('hidden');
+  previewBtn.innerHTML = '<i class="fa-solid fa-book-open"></i> Preview';
+
   // Load Monaco editor content
   if (STATE.editor) {
     STATE.editor.setValue(snippet.content);
@@ -486,7 +499,7 @@ function initMonacoEditor() {
 // ==========================================
 const CHUNK_SIZE = 1024 * 1024; // 1MB Chunk size
 
-async function uploadFileInChunks(file) {
+async function uploadFileInChunks(file, relativePath = '') {
   const uploadUUID = crypto.randomUUID();
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   
@@ -542,6 +555,7 @@ async function uploadFileInChunks(file) {
       total_chunks: totalChunks,
       file_size: file.size,
       sender_device: STATE.user ? STATE.user.username : 'WebClient',
+      relative_path: relativePath,
     };
     
     await apiRequest('/api/files/merge-chunks', 'POST', payload);
@@ -573,6 +587,7 @@ async function loadFilesList() {
     const list = await apiRequest(`/api/files?q=${encodeURIComponent(query)}`);
     STATE.filesList = list || [];
     renderFilesList();
+    buildFolderTree();
   } catch (err) {
     showToast('Failed to load shared files', 'error');
   }
@@ -617,11 +632,14 @@ function renderFilesList() {
           <span>Downloads: <b class="text-slate-400" id="dl-cnt-${f.id}">${f.download_count}</b></span>
         </div>
 
-        <div class="flex gap-2.5">
-          <a href="/api/files/download/${f.id}" target="_blank" class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 text-slate-300">
+        <div class="flex gap-2">
+          <button onclick="downloadFile('${f.id}', '${f.file_name}')" class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 text-slate-300">
             <i class="fa-solid fa-download"></i> Download
-          </a>
-          <button onclick="deleteFile('${f.id}')" class="px-3 py-2 bg-red-950/15 border border-red-900/20 hover:border-red-900/50 hover:bg-red-900/10 text-red-500 hover:text-red-400 rounded-lg text-xs">
+          </button>
+          <button onclick="openPreview('${f.id}')" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 text-slate-300">
+            <i class="fa-solid fa-eye"></i> Preview
+          </button>
+          <button onclick="deleteFile('${f.id}')" class="px-2 py-2 bg-red-950/15 border border-red-900/20 hover:border-red-900/50 hover:bg-red-900/10 text-red-500 hover:text-red-400 rounded-lg text-xs">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -752,6 +770,14 @@ document.getElementById('file-input').addEventListener('change', (e) => {
   if (files.length > 0) {
     for (let f of files) {
       uploadFileInChunks(f);
+    }
+  }
+});
+document.getElementById('folder-input').addEventListener('change', (e) => {
+  const files = e.target.files;
+  if (files.length > 0) {
+    for (let f of files) {
+      uploadFileInChunks(f, f.webkitRelativePath || '');
     }
   }
 });
@@ -1023,4 +1049,254 @@ window.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   initMonacoEditor();
   switchTab('dashboard');
+
+  // Markdown Preview Toggle Listener
+  document.getElementById('btn-editor-preview').addEventListener('click', () => {
+    const previewContainer = document.getElementById('markdown-preview-container');
+    const editorContainer = document.getElementById('monaco-editor-container');
+    const btn = document.getElementById('btn-editor-preview');
+
+    if (previewContainer.classList.contains('hidden')) {
+      previewContainer.classList.remove('hidden');
+      editorContainer.classList.add('hidden');
+      
+      const markdownText = STATE.editor ? STATE.editor.getValue() : '';
+      previewContainer.innerHTML = marked.parse(markdownText);
+      btn.innerHTML = '<i class="fa-solid fa-code"></i> Editor';
+      btn.title = "Switch to Editor";
+    } else {
+      previewContainer.classList.add('hidden');
+      editorContainer.classList.remove('hidden');
+      btn.innerHTML = '<i class="fa-solid fa-book-open"></i> Preview';
+      btn.title = "Switch to Live Preview";
+    }
+  });
+
+  // Preview Modal Listeners
+  document.getElementById('close-preview-btn').addEventListener('click', closePreview);
+  document.getElementById('preview-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'preview-modal') closePreview();
+  });
 });
+
+// ==========================================
+// FILE PREVIEW MODAL LOGIC
+// ==========================================
+async function openPreview(id) {
+  const f = STATE.filesList.find(item => item.id === id);
+  if (!f) return;
+
+  const modal = document.getElementById('preview-modal');
+  document.getElementById('preview-filename').innerText = f.file_name;
+  document.getElementById('preview-filesize').innerText = formatBytes(f.file_size);
+  document.getElementById('preview-meta').innerText = `Uploaded by: ${f.sender_device}`;
+  document.getElementById('preview-time').innerText = `Time: ${new Date(f.uploaded_at).toLocaleString()}`;
+  
+  const dlBtn = document.getElementById('preview-download-btn');
+  dlBtn.onclick = (e) => {
+    e.preventDefault();
+    downloadFile(f.id, f.file_name);
+  };
+
+  const container = document.getElementById('preview-content-container');
+  container.innerHTML = '<p class="text-slate-500 text-xs">Loading preview...</p>';
+  modal.classList.remove('hidden');
+
+  const ext = f.file_type.toLowerCase();
+  
+  if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].includes(ext)) {
+    container.innerHTML = `<img src="/api/files/download/${f.id}" class="max-h-[50vh] max-w-full rounded-lg object-contain shadow-md">`;
+  } else if (['.mp4', '.mkv', '.avi', '.mov', '.webm'].includes(ext)) {
+    container.innerHTML = `<video src="/api/files/download/${f.id}" controls class="max-h-[50vh] max-w-full rounded-lg shadow-md"></video>`;
+  } else if (['.mp3', '.wav', '.ogg'].includes(ext)) {
+    container.innerHTML = `<audio src="/api/files/download/${f.id}" controls class="w-full max-w-md"></audio>`;
+  } else if (ext === '.pdf') {
+    container.innerHTML = `<iframe src="/api/files/download/${f.id}" class="w-full h-[50vh] rounded-lg border border-slate-800"></iframe>`;
+  } else if (['.txt', '.md', '.go', '.py', '.js', '.css', '.html', '.json', '.sql', '.yaml', '.sh'].includes(ext)) {
+    try {
+      const response = await fetch(`/api/files/download/${f.id}`, {
+        headers: STATE.token ? { 'Authorization': `Bearer ${STATE.token}` } : {}
+      });
+      if (!response.ok) throw new Error();
+      const text = await response.text();
+      
+      if (ext === '.md') {
+        container.innerHTML = `<div class="w-full text-left p-4 overflow-auto prose prose-invert text-slate-300 max-h-[50vh]">${marked.parse(text)}</div>`;
+      } else {
+        const escapedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        container.innerHTML = `<pre class="w-full text-left p-4 overflow-auto font-mono text-[11px] text-slate-300 select-text max-h-[50vh] bg-slate-950/60 rounded-lg whitespace-pre-wrap">${escapedText}</pre>`;
+      }
+    } catch (err) {
+      container.innerHTML = '<p class="text-red-400 text-xs">Failed to load text preview content.</p>';
+    }
+  } else {
+    container.innerHTML = `
+      <div class="text-center p-8">
+        <i class="fa-solid fa-file-circle-question text-slate-600 text-4xl mb-3"></i>
+        <p class="text-xs text-slate-400">Preview not supported for this file type.</p>
+      </div>
+    `;
+  }
+}
+
+function closePreview() {
+  const modal = document.getElementById('preview-modal');
+  modal.classList.add('hidden');
+  const container = document.getElementById('preview-content-container');
+  container.innerHTML = '';
+}
+
+// ==========================================
+// JS CHUNK STREAM DOWNLOAD LOGIC
+// ==========================================
+async function downloadFile(id, filename) {
+  const container = document.getElementById('toast-container');
+  const widget = document.createElement('div');
+  widget.className = `glass-panel px-5 py-4 rounded-xl border border-blue-500/20 glow-blue flex flex-col gap-2 text-sm shadow-xl z-50 w-80`;
+  widget.id = `dl-widget-${id}`;
+  widget.innerHTML = `
+    <div class="flex justify-between items-center">
+      <span class="font-bold text-slate-200 truncate flex-1 pr-2 text-xs">${filename}</span>
+      <span class="text-xs font-mono text-blue-400 font-bold" id="dl-percent-${id}">0%</span>
+    </div>
+    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full" id="dl-bar-${id}" style="width: 0%"></div>
+    </div>
+    <div class="flex justify-between text-[10px] text-slate-500 font-semibold">
+      <span id="dl-size-${id}">0 B</span>
+      <span id="dl-speed-${id}">0 MB/s</span>
+    </div>
+  `;
+  container.appendChild(widget);
+
+  try {
+    const response = await fetch(`/api/files/download/${id}`, {
+      headers: STATE.token ? { 'Authorization': `Bearer ${STATE.token}` } : {}
+    });
+    if (!response.ok) throw new Error('Download failed');
+    
+    const reader = response.body.getReader();
+    const contentLength = +response.headers.get('Content-Length');
+    
+    let receivedBytes = 0;
+    const chunks = [];
+    const startTime = Date.now();
+
+    while(true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      
+      chunks.push(value);
+      receivedBytes += value.length;
+
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const speed = elapsedSeconds > 0 ? receivedBytes / elapsedSeconds : 0;
+      const percent = contentLength ? Math.round((receivedBytes / contentLength) * 100) : 0;
+
+      document.getElementById(`dl-bar-${id}`).style.width = `${percent}%`;
+      document.getElementById(`dl-percent-${id}`).innerText = `${percent}%`;
+      document.getElementById(`dl-size-${id}`).innerText = `${formatBytes(receivedBytes)} ${contentLength ? 'of ' + formatBytes(contentLength) : ''}`;
+      document.getElementById(`dl-speed-${id}`).innerText = `Speed: ${(speed / 1024 / 1024).toFixed(2)} MB/s`;
+    }
+
+    const blob = new Blob(chunks);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    showToast(`Download finished: ${filename}`, 'success');
+    setTimeout(() => widget.remove(), 1000);
+
+    const cntEl = document.getElementById(`dl-cnt-${id}`);
+    if (cntEl) cntEl.innerText = parseInt(cntEl.innerText) + 1;
+
+  } catch (err) {
+    console.error(err);
+    showToast(`Download failed: ${filename}`, 'error');
+    widget.remove();
+  }
+}
+
+// ==========================================
+// INTERACTIVE FOLDER TREE VIEW LOGIC
+// ==========================================
+function buildFolderTree() {
+  const container = document.getElementById('folder-tree-container');
+  if (!STATE.filesList || STATE.filesList.length === 0) {
+    container.innerHTML = '<p class="text-slate-500 text-center py-12">No folders uploaded yet.</p>';
+    return;
+  }
+
+  const root = { _folders: {}, _files: [] };
+  let hasFolders = false;
+
+  STATE.filesList.forEach(f => {
+    if (!f.relative_path || !f.relative_path.includes('/')) {
+      return;
+    }
+    hasFolders = true;
+    const parts = f.relative_path.split('/');
+    let current = root;
+    
+    parts.forEach((part, i) => {
+      if (i === parts.length - 1) {
+        current._files.push(f);
+      } else {
+        if (!current._folders[part]) {
+          current._folders[part] = { _folders: {}, _files: [] };
+        }
+        current = current._folders[part];
+      }
+    });
+  });
+
+  if (!hasFolders) {
+    container.innerHTML = '<p class="text-slate-500 text-center py-12">No folders uploaded yet.</p>';
+    return;
+  }
+
+  function renderNode(name, node, currentPath = '') {
+    const fullPath = currentPath ? `${currentPath}/${name}` : name;
+    
+    let subFoldersHtml = Object.keys(node._folders).map(subName => 
+      renderNode(subName, node._folders[subName], fullPath)
+    ).join('');
+
+    let filesHtml = node._files.map(f => `
+      <div onclick="openPreview('${f.id}')" class="pl-4 py-1.5 flex items-center gap-2 hover:text-blue-400 cursor-pointer font-mono text-[11px] truncate text-slate-400">
+        <i class="fa-solid fa-file-lines text-slate-500"></i>
+        <span>${f.file_name}</span>
+      </div>
+    `).join('');
+
+    return `
+      <details class="pl-2 mt-1" open>
+        <summary class="flex items-center gap-2 hover:text-white cursor-pointer font-semibold py-1 text-slate-300">
+          <i class="fa-solid fa-folder text-yellow-500 text-xs"></i>
+          <span onclick="filterByFolderPath('${fullPath}')">${name}</span>
+        </summary>
+        <div class="pl-2 border-l border-slate-800/80">
+          ${subFoldersHtml}
+          ${filesHtml}
+        </div>
+      </details>
+    `;
+  }
+
+  let html = Object.keys(root._folders).map(folderName => 
+    renderNode(folderName, root._folders[folderName])
+  ).join('');
+
+  container.innerHTML = html;
+}
+
+window.filterByFolderPath = function(folderPath) {
+  event.stopPropagation();
+  event.preventDefault();
+  const filtered = STATE.filesList.filter(f => f.relative_path && f.relative_path.startsWith(folderPath));
+  renderFilteredFiles(filtered);
+}
+

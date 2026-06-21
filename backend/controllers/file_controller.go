@@ -38,6 +38,7 @@ func (ctrl *FileController) UploadSingle(c *gin.Context) {
 	}
 
 	senderDevice := c.DefaultPostForm("sender_device", c.ClientIP())
+	relativePath := c.DefaultPostForm("relative_path", "")
 	fileUUID := uuid.New()
 	safeFileName := fileHeader.Filename
 	savedName := fmt.Sprintf("%s_%s", fileUUID.String(), safeFileName)
@@ -56,6 +57,7 @@ func (ctrl *FileController) UploadSingle(c *gin.Context) {
 		FileType:      filepath.Ext(safeFileName),
 		SenderDevice:  senderDevice,
 		DownloadCount: 0,
+		RelativePath:  relativePath,
 		UploadedAt:    time.Now(),
 	}
 
@@ -138,6 +140,7 @@ type MergeChunksInput struct {
 	TotalChunks  int    `json:"total_chunks" binding:"required"`
 	FileSize     int64  `json:"file_size" binding:"required"`
 	SenderDevice string `json:"sender_device"`
+	RelativePath string `json:"relative_path"`
 }
 
 // MergeChunks merges all uploaded chunks into a single file
@@ -199,6 +202,7 @@ func (ctrl *FileController) MergeChunks(c *gin.Context) {
 		FileType:      filepath.Ext(input.FileName),
 		SenderDevice:  sender,
 		DownloadCount: 0,
+		RelativePath:  input.RelativePath,
 		UploadedAt:    time.Now(),
 	}
 

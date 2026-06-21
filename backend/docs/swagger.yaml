@@ -1,0 +1,407 @@
+openapi: 3.0.3
+info:
+  title: DevSync REST API
+  description: Self-hosted local developer workspace and high-speed file sharing APIs.
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /auth/register:
+    post:
+      summary: Register a new developer profile
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minimum: 6
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Invalid input
+        '499':
+          description: Conflict (username/email taken)
+
+  /auth/login:
+    post:
+      summary: Login and receive a JWT token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Unauthorized
+
+  /devices/ping:
+    post:
+      summary: Register device presence or report heartbeat
+      tags:
+        - Device Discovery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device_name
+              properties:
+                device_name:
+                  type: string
+      responses:
+        '200':
+          description: Heartbeat recorded
+
+  /devices:
+    get:
+      summary: List all discovered local devices
+      tags:
+        - Device Discovery
+      responses:
+        '200':
+          description: List of active/inactive devices
+
+  /dashboard/metrics:
+    get:
+      summary: Retrieve server and system metrics
+      tags:
+        - Monitoring Dashboard
+      responses:
+        '200':
+          description: Server configuration, RAM usage, and active timelines
+
+  /files/upload:
+    post:
+      summary: Direct file upload (e.g. for curl or watchers)
+      tags:
+        - File Sharing
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                sender_device:
+                  type: string
+                relative_path:
+                  type: string
+      responses:
+        '200':
+          description: File uploaded successfully
+
+  /files/download/{id}:
+    get:
+      summary: Download a shared file by ID
+      tags:
+        - File Sharing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File download stream
+
+  /snippets:
+    get:
+      summary: List and search code snippets
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of matching snippets
+    post:
+      summary: Create a new code snippet
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - language
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                language:
+                  type: string
+                tags:
+                  type: string
+                is_favorite:
+                  type: boolean
+      responses:
+        '201':
+          description: Snippet created
+
+  /snippets/{id}:
+    get:
+      summary: Get details of a single snippet
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Snippet object
+    put:
+      summary: Update a code snippet
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - language
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                language:
+                  type: string
+                tags:
+                  type: string
+                is_favorite:
+                  type: boolean
+      responses:
+        '200':
+          description: Snippet updated
+    delete:
+      summary: Delete a code snippet
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Snippet deleted
+
+  /snippets/{id}/favorite:
+    post:
+      summary: Toggle favorite status of a snippet
+      tags:
+        - Code Vault
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - is_favorite
+              properties:
+                is_favorite:
+                  type: boolean
+      responses:
+        '200':
+          description: Favorite status updated
+
+  /files:
+    get:
+      summary: List and search shared files
+      tags:
+        - File Sharing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of files
+    delete:
+      summary: Delete a file
+      tags:
+        - File Sharing
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File deleted
+
+  /files/upload-chunk:
+    post:
+      summary: Upload a single chunk of a large file
+      tags:
+        - File Sharing
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - chunk
+                - upload_uuid
+                - chunk_index
+                - total_chunks
+              properties:
+                chunk:
+                  type: string
+                  format: binary
+                upload_uuid:
+                  type: string
+                chunk_index:
+                  type: integer
+                total_chunks:
+                  type: integer
+      responses:
+        '200':
+          description: Chunk uploaded successfully
+
+  /files/merge-chunks:
+    post:
+      summary: Assemble uploaded chunks into a final file
+      tags:
+        - File Sharing
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - upload_uuid
+                - file_name
+                - total_chunks
+                - file_size
+              properties:
+                upload_uuid:
+                  type: string
+                file_name:
+                  type: string
+                total_chunks:
+                  type: integer
+                file_size:
+                  type: integer
+                sender_device:
+                  type: string
+                relative_path:
+                  type: string
+      responses:
+        '200':
+          description: Chunks merged successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

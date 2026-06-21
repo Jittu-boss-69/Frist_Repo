@@ -8,6 +8,7 @@ import (
 	"devsync/backend/repository"
 	"devsync/backend/routes"
 	"devsync/backend/websocket"
+	"devsync/backend/worker"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	fileRepo := repository.NewSharedFileRepository()
 	deviceRepo := repository.NewDeviceRepository()
 	activityRepo := repository.NewActivityLogRepository()
+
+	// Start Background Workers
+	worker.StartDeviceOfflineWorker(deviceRepo)
 
 	// 5. Initialize Controllers
 	authCtrl := controllers.NewAuthController(userRepo, activityRepo)

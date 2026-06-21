@@ -66,6 +66,7 @@ func runMigrations() {
 			file_type VARCHAR(100),
 			sender_device VARCHAR(255),
 			download_count INTEGER DEFAULT 0,
+			relative_path VARCHAR(512) DEFAULT '',
 			uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 		);`,
 
@@ -91,6 +92,12 @@ func runMigrations() {
 		if err != nil {
 			log.Fatalf("Error running migration: %v\nSchema: %s", err, schema)
 		}
+	}
+
+	// Upgrade script to ensure relative_path exists for older database containers
+	_, err := DB.Exec("ALTER TABLE shared_files ADD COLUMN IF NOT EXISTS relative_path VARCHAR(512) DEFAULT '';")
+	if err != nil {
+		log.Printf("Warning: Failed to run upgrade migration: %v", err)
 	}
 
 	log.Println("Database tables initialized successfully!")

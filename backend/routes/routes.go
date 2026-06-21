@@ -22,6 +22,8 @@ func SetupRouter(
 	// Serve Frontend Static SPA
 	r.Static("/assets", "./frontend/assets")
 	r.StaticFile("/", "./frontend/index.html")
+	r.StaticFile("/swagger.yaml", "./backend/docs/swagger.yaml")
+	r.StaticFile("/swagger", "./backend/docs/swagger.html")
 
 	// WebSocket Connection Handler
 	r.GET("/ws", func(c *gin.Context) {
