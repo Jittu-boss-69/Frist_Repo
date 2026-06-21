@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevSync — Local Developer Platform</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#020617',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Custom Style Sheet -->
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- ================= AUTH PAGE ================= -->
+  <div id="auth-container" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md hidden">
+    <div class="glass-panel w-full max-w-md p-8 rounded-2xl border border-slate-800/80 shadow-2xl relative overflow-hidden">
+      <!-- Glow background -->
+      <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl animate-pulse-slow"></div>
+      <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl animate-pulse-slow"></div>
+
+      <!-- Header -->
+      <div class="text-center mb-8 relative">
+        <div class="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-xl mb-4 shadow-lg glow-blue">
+          <i class="fa-solid fa-rotate text-2xl text-white"></i>
+        </div>
+        <h2 class="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">DevSync</h2>
+        <p class="text-sm text-slate-400 mt-2">Private workspace & high-speed file transfer</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username or Email</label>
+          <input type="text" id="login-username" class="glass-input w-full px-4 py-3 rounded-lg text-sm" placeholder="e.g. jittu_boss" required>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+          <input type="password" id="login-password" class="glass-input w-full px-4 py-3 rounded-lg text-sm" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-sm font-semibold rounded-lg shadow-lg hover:shadow-blue-500/20 transition-all duration-300">
+          Sign In
+        </button>
+        <p class="text-xs text-center text-slate-400 mt-4">
+          Need an account? <a href="#" id="show-register-btn" class="text-blue-400 hover:underline">Create a developer profile</a>
+        </p>
+      </form>
+
+      <!-- Register Form (Hidden by default) -->
+      <form id="register-form" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+          <input type="text" id="reg-username" class="glass-input w-full px-4 py-3 rounded-lg text-sm" placeholder="username" required>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email Address</label>
+          <input type="email" id="reg-email" class="glass-input w-full px-4 py-3 rounded-lg text-sm" placeholder="email@address.com" required>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+          <input type="password" id="reg-password" class="glass-input w-full px-4 py-3 rounded-lg text-sm" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-sm font-semibold rounded-lg shadow-lg hover:shadow-purple-500/20 transition-all duration-300">
+          Create Profile
+        </button>
+        <p class="text-xs text-center text-slate-400 mt-4">
+          Already have a profile? <a href="#" id="show-login-btn" class="text-purple-400 hover:underline">Sign In</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= MAIN DASHBOARD APP ================= -->
+  <div id="app-container" class="flex flex-1 overflow-hidden">
+    
+    <!-- SIDEBAR -->
+    <aside class="w-64 glass-panel border-r border-slate-800/80 flex flex-col z-20">
+      <!-- Title -->
+      <div class="p-6 flex items-center gap-3 border-b border-slate-800/60">
+        <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+          <i class="fa-solid fa-rotate text-lg text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">DevSync</h1>
+          <span class="text-[10px] text-slate-500 font-semibold tracking-widest uppercase">Self-Hosted</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 px-4 py-6 space-y-2.5">
+        <a href="#" data-tab="dashboard" class="nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/60 transition-all duration-200">
+          <i class="fa-solid fa-chart-line text-lg w-6 text-center"></i>
+          Dashboard
+        </a>
+        <a href="#" data-tab="snippets" class="nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/60 transition-all duration-200">
+          <i class="fa-solid fa-code text-lg w-6 text-center"></i>
+          Code Vault
+        </a>
+        <a href="#" data-tab="files" class="nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/60 transition-all duration-200">
+          <i class="fa-solid fa-folder-open text-lg w-6 text-center"></i>
+          File Sharing
+        </a>
+        <a href="#" data-tab="cli" class="nav-item flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/60 transition-all duration-200">
+          <i class="fa-solid fa-terminal text-lg w-6 text-center"></i>
+          CLI & Connection
+        </a>
+      </nav>
+
+      <!-- Footer User Info -->
+      <div class="p-4 border-t border-slate-800/60 flex items-center justify-between">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-slate-300 font-bold border border-slate-700">
+            <span id="user-avatar-initial">D</span>
+          </div>
+          <div class="min-w-0">
+            <p id="user-display-name" class="text-sm font-semibold truncate text-slate-300">Developer</p>
+            <p id="user-display-ip" class="text-[10px] text-slate-500 font-mono">127.0.0.1</p>
+          </div>
+        </div>
+        <button id="logout-btn" title="Sign Out" class="text-slate-500 hover:text-red-400 p-2 rounded-lg transition-colors">
+          <i class="fa-solid fa-power-off"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 flex flex-col overflow-y-auto min-w-0 bg-slate-950/40 relative">
+      <!-- Glow effects in main -->
+      <div class="absolute top-20 right-20 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute bottom-20 left-20 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- HEADER BAR -->
+      <header class="h-16 border-b border-slate-800/40 flex items-center justify-between px-8 z-10 bg-slate-950/30 backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+          <h2 id="current-section-title" class="text-xl font-bold text-slate-200">Dashboard</h2>
+          <span class="w-1.5 h-1.5 bg-green-500 rounded-full status-dot-pulse" title="System Online"></span>
+        </div>
+        
+        <!-- Local IP Badge -->
+        <div class="flex items-center gap-3">
+          <div class="glass-panel px-3 py-1.5 rounded-lg border border-slate-800/80 text-xs font-mono flex items-center gap-2">
+            <span class="text-slate-500">Local IP:</span>
+            <span id="host-ip-badge" class="text-blue-400 font-semibold">Detecting...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- SECTIONS -->
+      <div class="flex-1 p-8 space-y-8 relative z-10">
+
+        <!-- 1. DASHBOARD TAB -->
+        <section id="tab-dashboard" class="space-y-8 tab-section">
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <!-- Files Widget -->
+            <div class="glass-panel p-6 rounded-2xl flex items-center justify-between glow-blue">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Shared Files</span>
+                <span id="stat-files" class="text-3xl font-extrabold mt-1 block">0</span>
+              </div>
+              <div class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 border border-blue-500/20">
+                <i class="fa-solid fa-file-invoice text-xl"></i>
+              </div>
+            </div>
+
+            <!-- Snippets Widget -->
+            <div class="glass-panel p-6 rounded-2xl flex items-center justify-between glow-purple">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Code Snippets</span>
+                <span id="stat-snippets" class="text-3xl font-extrabold mt-1 block">0</span>
+              </div>
+              <div class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 border border-purple-500/20">
+                <i class="fa-solid fa-code text-xl"></i>
+              </div>
+            </div>
+
+            <!-- Devices Widget -->
+            <div class="glass-panel p-6 rounded-2xl flex items-center justify-between glow-green">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Connected Devices</span>
+                <span id="stat-devices" class="text-3xl font-extrabold mt-1 block">0</span>
+              </div>
+              <div class="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                <i class="fa-solid fa-laptop text-xl"></i>
+              </div>
+            </div>
+
+            <!-- Storage Widget -->
+            <div class="glass-panel p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Storage Allocated</span>
+                <span id="stat-storage" class="text-2xl font-extrabold mt-1.5 block">0 B</span>
+              </div>
+              <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 border border-slate-700">
+                <i class="fa-solid fa-database text-xl"></i>
+              </div>
+            </div>
+
+            <!-- Memory Usage Widget -->
+            <div class="glass-panel p-6 rounded-2xl flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Server Memory</span>
+                <span id="stat-memory" class="text-2xl font-extrabold mt-1.5 block">0.0 MB</span>
+              </div>
+              <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400 border border-slate-700">
+                <i class="fa-solid fa-microchip text-xl"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mid Section (Devices & Activity) -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Active Devices -->
+            <div class="glass-panel p-6 rounded-2xl lg:col-span-1 flex flex-col h-[400px]">
+              <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-network-wired text-blue-400"></i>
+                Device Discovery
+              </h3>
+              <div id="device-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                <!-- Device skeleton or empty state -->
+                <p class="text-sm text-slate-500 py-8 text-center">No active devices logged.</p>
+              </div>
+            </div>
+
+            <!-- Live activity logs -->
+            <div class="glass-panel p-6 rounded-2xl lg:col-span-2 flex flex-col h-[400px]">
+              <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center justify-between">
+                <span class="flex items-center gap-2">
+                  <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                  Activity Center
+                </span>
+                <span class="px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 text-[10px] rounded text-purple-400 font-semibold tracking-wider uppercase">Live WS</span>
+              </h3>
+              <div id="activity-log-timeline" class="flex-1 overflow-y-auto space-y-3 pr-2 terminal-font text-xs terminal-scroll bg-black/30 p-4 rounded-xl border border-slate-900">
+                <!-- Live actions go here -->
+                <p class="text-slate-600">Waiting for local activities...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. CODE VAULT TAB -->
+        <section id="tab-snippets" class="space-y-8 tab-section hidden">
+          <!-- Split Layout -->
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Left Side: List & Filters (4 Cols) -->
+            <div class="xl:col-span-4 space-y-6 flex flex-col max-h-[750px]">
+              <!-- Search & Filter panel -->
+              <div class="glass-panel p-5 rounded-2xl space-y-4">
+                <div class="relative">
+                  <input type="text" id="snippet-search" class="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl text-sm" placeholder="Search title, tags, content...">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500"></i>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <select id="snippet-lang-filter" class="glass-input px-3 py-2 rounded-xl text-xs">
+                    <option value="">All Languages</option>
+                    <option value="go">Go</option>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                    <option value="php">PHP</option>
+                    <option value="sql">SQL</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                  </select>
+                  <button id="snippet-fav-filter" class="px-3 py-2 rounded-xl text-xs border border-slate-800 bg-slate-900/40 hover:bg-slate-900 text-slate-400 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    Favorites
+                  </button>
+                </div>
+              </div>
+
+              <!-- Create Button -->
+              <button id="show-create-snippet-modal" class="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all duration-300">
+                <i class="fa-solid fa-plus"></i> New Snippet
+              </button>
+
+              <!-- Snippets List -->
+              <div id="snippets-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+                <!-- Snippet items go here -->
+              </div>
+            </div>
+
+            <!-- Right Side: Editor & Preview (8 Cols) -->
+            <div class="xl:col-span-8 space-y-6">
+              <!-- Monaco Editor Panel -->
+              <div class="glass-panel p-6 rounded-2xl flex flex-col relative h-[700px] hidden" id="snippet-editor-panel">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800/60 pb-4">
+                  <div>
+                    <h3 id="editor-title" class="text-lg font-bold text-slate-200">Snippet Title</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                      <span id="editor-lang-badge" class="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-[10px] rounded text-blue-400 font-semibold uppercase tracking-wider">python</span>
+                      <span id="editor-tags" class="text-xs text-slate-400">tags: none</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <button id="btn-editor-fav" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-amber-400 text-slate-500" title="Favorite">
+                      <i class="fa-solid fa-star"></i>
+                    </button>
+                    <button id="btn-editor-copy" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-blue-400 text-slate-400 flex items-center gap-2 text-xs" title="Copy Code">
+                      <i class="fa-solid fa-copy"></i> Copy
+                    </button>
+                    <button id="btn-editor-download" class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:text-purple-400 text-slate-400 flex items-center gap-2 text-xs" title="Download Snippet">
+                      <i class="fa-solid fa-download"></i> Download
+                    </button>
+                    <button id="btn-editor-save" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-xs font-semibold text-white hover:from-blue-500 hover:to-purple-500">
+                      Save Changes
+                    </button>
+                    <button id="btn-editor-delete" class="p-2 rounded-lg bg-red-950/20 border border-red-900/20 hover:text-red-400 text-red-500 text-xs" title="Delete">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Monaco Instance Container -->
+                <div class="flex-1" id="monaco-editor-container"></div>
+              </div>
+
+              <!-- Editor Placeholder -->
+              <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-slate-500 h-[700px]" id="editor-placeholder">
+                <div class="w-16 h-16 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-center justify-center text-2xl mb-4 text-slate-400 shadow-md">
+                  <i class="fa-solid fa-code"></i>
+                </div>
+                <h3 class="font-bold text-slate-300">No Snippet Selected</h3>
+                <p class="text-xs mt-1 text-slate-500">Create a new snippet or select one from the vault list.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. FILE SHARING TAB -->
+        <section id="tab-files" class="space-y-8 tab-section hidden">
+          <!-- Grid files -->
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <!-- Left: Drop & Tree View (4 cols) -->
+            <div class="xl:col-span-4 space-y-6">
+              <!-- Upload Drag Drop Box -->
+              <div id="drop-zone" class="glass-panel p-8 rounded-2xl border-2 border-dashed border-slate-800 hover:border-blue-500/50 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 h-[220px]">
+                <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 mb-4 glow-blue">
+                  <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                </div>
+                <h4 class="font-bold text-slate-200">Drag & Drop Files Here</h4>
+                <p class="text-xs text-slate-500 mt-1">Supports chunk upload for large files</p>
+                <input type="file" id="file-input" class="hidden" multiple>
+              </div>
+
+              <!-- Uploading progress panel (dynamic) -->
+              <div class="glass-panel p-5 rounded-2xl hidden" id="upload-progress-panel">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                  <span>Uploading Files</span>
+                  <span id="upload-percentage" class="text-blue-400 font-mono font-bold">0%</span>
+                </h4>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-3">
+                  <div id="upload-progress-bar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-500 font-semibold font-mono">
+                  <span id="upload-speed">Speed: -- KB/s</span>
+                  <span id="upload-size">0 of 0 Bytes</span>
+                </div>
+              </div>
+
+              <!-- Folder tree explorer -->
+              <div class="glass-panel p-6 rounded-2xl flex flex-col h-[400px]">
+                <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2">
+                  <i class="fa-solid fa-network-wired text-purple-400"></i>
+                  File Type Filter
+                </h3>
+                <div class="space-y-2" id="file-type-filters">
+                  <button data-type="" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left bg-slate-900 border border-slate-800 text-blue-400 font-semibold flex items-center justify-between">
+                    <span>All Shared Files</span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </button>
+                  <button data-type=".zip,.rar,.tar" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                    <span>Archives (.zip, .rar)</span>
+                    <i class="fa-solid fa-file-zipper text-slate-500"></i>
+                  </button>
+                  <button data-type=".pdf,.doc,.txt" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                    <span>Documents (.pdf, .txt)</span>
+                    <i class="fa-solid fa-file-lines text-slate-500"></i>
+                  </button>
+                  <button data-type=".png,.jpg,.svg" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                    <span>Images (.png, .jpg)</span>
+                    <i class="fa-solid fa-file-image text-slate-500"></i>
+                  </button>
+                  <button data-type=".mp4,.mkv,.avi" class="file-filter-btn w-full px-4 py-2.5 rounded-xl text-sm text-left hover:bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-white flex items-center justify-between">
+                    <span>Videos (.mp4, .mkv)</span>
+                    <i class="fa-solid fa-file-video text-slate-500"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: List view (8 cols) -->
+            <div class="xl:col-span-8 space-y-6">
+              <!-- Search files bar -->
+              <div class="glass-panel p-5 rounded-2xl flex gap-4">
+                <div class="relative flex-1">
+                  <input type="text" id="file-search" class="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl text-sm" placeholder="Search files by name...">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500"></i>
+                </div>
+              </div>
+
+              <!-- Shared File items grid -->
+              <div id="files-list" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[600px] overflow-y-auto pr-2">
+                <!-- Files go here -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. CLI & CONNECTION TAB -->
+        <section id="tab-cli" class="space-y-8 tab-section hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- QR Code Card -->
+            <div class="glass-panel p-8 rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+              <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl animate-pulse-slow"></div>
+              
+              <h3 class="text-lg font-bold text-slate-200 mb-2">QR Code Access</h3>
+              <p class="text-xs text-slate-400 mb-6 max-w-sm">Scan this QR Code on your mobile or tablet connected to the same Wi-Fi network to instantly launch DevSync.</p>
+              
+              <!-- QR Code Container -->
+              <div class="p-4 bg-white rounded-xl shadow-lg glow-blue mb-6">
+                <div id="qrcode-container"></div>
+              </div>
+              
+              <p class="text-sm font-semibold text-slate-300">Connection Address:</p>
+              <a href="#" id="cli-connection-url" target="_blank" class="text-blue-400 font-mono text-sm hover:underline mt-1">http://127.0.0.1:8080</a>
+            </div>
+
+            <!-- Terminal Commands Card -->
+            <div class="glass-panel p-8 rounded-2xl flex flex-col">
+              <h3 class="text-lg font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-terminal text-purple-400"></i>
+                Developer CLI Upload
+              </h3>
+              <p class="text-xs text-slate-400 mb-6">Upload files instantly to the DevSync dashboard directly from your terminal or command prompt using cURL.</p>
+              
+              <div class="space-y-4 flex-1">
+                <!-- Command 1 -->
+                <div>
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">1. Upload a file via Terminal:</span>
+                  <div class="flex items-center gap-2 p-3 bg-black/40 border border-slate-900 rounded-xl">
+                    <code id="curl-cmd-1" class="text-xs text-purple-300 font-mono flex-1 truncate select-all">curl -F "file=@project.zip" http://localhost:8080/api/files/upload</code>
+                    <button onclick="copyText('curl-cmd-1')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copy Command">
+                      <i class="fa-solid fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Command 2 -->
+                <div>
+                  <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">2. Upload with Sender Device tag:</span>
+                  <div class="flex items-center gap-2 p-3 bg-black/40 border border-slate-900 rounded-xl">
+                    <code id="curl-cmd-2" class="text-xs text-purple-300 font-mono flex-1 truncate select-all">curl -F "file=@notes.pdf" -F "sender_device=MacBookCLI" http://localhost:8080/api/files/upload</code>
+                    <button onclick="copyText('curl-cmd-2')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copy Command">
+                      <i class="fa-solid fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ================= SNIPPET MODAL (CREATE/EDIT) ================= -->
+  <div id="snippet-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm hidden">
+    <div class="glass-panel w-full max-w-xl p-6 rounded-2xl border border-slate-800 shadow-2xl relative">
+      <h3 class="text-lg font-bold text-slate-200 mb-4" id="snippet-modal-title">Create Code Snippet</h3>
+      <form id="snippet-form" class="space-y-4">
+        <input type="hidden" id="modal-snippet-id">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">Snippet Title</label>
+          <input type="text" id="modal-snippet-title" class="glass-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="e.g. Postgres DB Ping" required>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">Language</label>
+            <select id="modal-snippet-lang" class="glass-input w-full px-4 py-2.5 rounded-lg text-sm" required>
+              <option value="go">Go</option>
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="java">Java</option>
+              <option value="php">PHP</option>
+              <option value="sql">SQL</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">Tags (Comma separated)</label>
+            <input type="text" id="modal-snippet-tags" class="glass-input w-full px-4 py-2.5 rounded-lg text-sm" placeholder="e.g. database, ping, helper">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">Snippet Content</label>
+          <textarea id="modal-snippet-content" class="glass-input w-full h-44 px-4 py-3 rounded-lg text-sm font-mono" placeholder="Write code here..." required></textarea>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="modal-snippet-fav" class="rounded bg-slate-900 border-slate-800 text-blue-500 focus:ring-0">
+          <label for="modal-snippet-fav" class="text-xs text-slate-400 font-semibold select-none">Mark as Favorite</label>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" id="close-snippet-modal-btn" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-sm font-semibold text-slate-300">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg text-sm font-semibold text-white shadow-lg">
+            Save Snippet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3"></div>
+
+  <!-- CDN scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+  <!-- Main app script -->
+  <script src="/assets/js/app.js"></script>
+</body>
+</html>
